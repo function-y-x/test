@@ -1,8 +1,8 @@
-# 研心合一 (KaoYan MindCoach)
+# 心研领航 
 
 ## 项目概述
 
-“研心合一”（KaoYan MindCoach）是一个基于 Web 的 AI 驱动大学生心理健康助手，专为准备研究生入学考试（考研）的学生设计。该平台专注于 AI 情感计算技术，构建“感知-评估-干预-复盘”闭环，用于情绪监测、压力识别和个性化调节，并与学习场景整合。它旨在帮助考研学生（尤其是二战/三战学生）预测压力、生成“学习处方”、提供快速干预和每周复盘，将情感洞察与学习执行有效连接。
+“心研领航”（KaoYan MindCoach）是一个基于 Web 的 AI 驱动大学生心理健康助手，专为准备研究生入学考试（考研）的学生设计。该平台专注于 AI 情感计算技术，构建“感知-评估-干预-复盘”闭环，用于情绪监测、压力识别和个性化调节，并与学习场景整合。它旨在帮助考研学生（尤其是二战/三战学生）预测压力、生成“学习处方”、提供快速干预和每周复盘，将情感洞察与学习执行有效连接。
 
 **核心特点：**
 - **AI 情感计算**：通过用户自报输入进行情绪监测和压力识别。
@@ -33,7 +33,7 @@
 ## 技术栈
 
 -   **前端**：Vue.js 3 (Composition API), Vue Router, Pinia (状态管理), Chart.js (数据可视化), Tailwind CSS (样式).
--   **后端**：FastAPI (Python), Pydantic (数据验证), Motor (MongoDB 异步驱动), PyJWT (JWT 认证), Passlib (密码哈希), OpenAI Python Client (AI 集成).
+-   **后端**：FastAPI (Python), Pydantic (数据验证), PyJWT (JWT 认证), Passlib (密码哈希), OpenAI Python Client (AI 集成).
 -   **数据库**：MongoDB.
 -   **认证**：JWT (JSON Web Tokens) 进行用户注册/登录。
 
@@ -58,7 +58,6 @@ kaoyan-mindcoach/
 │   │   ├── api/              # 外部 API 接口定义 (例如 OpenAI)
 │   │   ├── core/             # 核心配置 (例如 settings.py)
 │   │   ├── db/               # 数据库连接和操作
-│   │   ├── models/           # MongoDB 数据模型 (Pydantic)
 │   │   ├── routers/          # FastAPI 路由定义
 │   │   ├── schemas/          # Pydantic 数据验证模型
 │   │   ├── services/         # 业务逻辑和 AI 服务
@@ -75,7 +74,6 @@ kaoyan-mindcoach/
 -   npm 或 Yarn
 -   Python 3.9+
 -   pip
--   MongoDB 数据库 (本地安装或云服务)
 
 ### 1. 克隆仓库
 
