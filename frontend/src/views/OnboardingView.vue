@@ -36,11 +36,14 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
+import axios from 'axios'
 
 export default {
   name: 'OnboardingView',
   setup() {
     const router = useRouter()
+    const authStore = useAuthStore()
     const step = ref(1)
     const examDate = ref('')
     const selectedSubjects = ref([])
@@ -50,13 +53,41 @@ export default {
       step.value++
     }
 
-    const finishOnboarding = () => {
-      // Here you would send onboarding data to backend
-      console.log({
-        examDate: examDate.value,
-        selectedSubjects: selectedSubjects.value,
-        aiCompanionStyle: aiCompanionStyle.value
-      })
+    const finishOnboarding = async () => {
+      // 发送引导数据到后端
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          // 更新用户信息
+          // 将日期转换为 UTC 时间的午夜零点，避免时区问题
+          let examDateISO = null
+          if (examDate.value) {
+            examDateISO = new Date(examDate.value + 'T00:00:00Z').toISOString()
+          }
+          
+          const response = await axios.put('/auth/me', {
+            exam_date: examDateISO,
+            selected_subjects: selectedSubjects.value,
+            ai_companion_style: aiCompanionStyle.value
+          }, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          console.log('用户信息更新成功:', response.data)
+          
+          // 使用后端返回的最新用户信息更新本地存储
+          if (response.data) {
+            localStorage.setItem('user', JSON.stringify(response.data))
+            // 同时更新store中的用户信息
+            authStore.user = response.data
+          }
+        }
+      } catch (error) {
+        console.error('更新用户信息失败:', error)
+        // 即使失败也继续，不影响用户体验
+      }
       
       // 保存引导完成状态
       localStorage.setItem('onboardingCompleted', 'true')
