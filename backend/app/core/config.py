@@ -15,6 +15,8 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+    OPENAI_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
 
 settings = Settings()
 

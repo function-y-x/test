@@ -3,8 +3,9 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 // 配置axios基础URL
-axios.defaults.baseURL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:8000/api/v1'
-axios.defaults.timeout = 10000 // 设置10秒超时
+// 将baseURL设为空字符串，以便在API调用中直接使用完整路径
+axios.defaults.baseURL = ''
+axios.defaults.timeout = 60000 // 进一步延长超时时间到60秒，以适应AI分析需要
 axios.defaults.withCredentials = true // 允许发送cookies
 
 export const useAuthStore = defineStore('auth', {
@@ -19,6 +20,26 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (state) => state.isAuthenticated
   },
   actions: {
+    // 模拟登录方法，用于开发测试
+    mockLogin() {
+      console.log('使用模拟登录进行开发测试')
+      // 设置模拟的token和用户信息
+      this.token = 'mock-token-for-development'
+      this.user = {
+        id: '1',
+        email: 'developer@example.com',
+        username: '开发者',
+        exam_date: '2024-12-31',
+        selected_subjects: ['数学', '英语', '专业课'],
+        ai_companion_style: '鼓励型',
+        created_at: new Date().toISOString()
+      }
+      this.isAuthenticated = true
+      localStorage.setItem('token', this.token)
+      localStorage.setItem('user', JSON.stringify(this.user))
+      return true
+    },
+    
     async login(email, password) {
       try {
         // 后端使用OAuth2PasswordRequestForm，需要用form格式发送数据
@@ -26,7 +47,7 @@ export const useAuthStore = defineStore('auth', {
         formData.append('username', email)  // OAuth2使用username字段
         formData.append('password', password)
         
-        const response = await axios.post('/auth/login', formData, {
+        const response = await axios.post('/api/v1/auth/login', formData, {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           }
@@ -46,7 +67,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async register(email, password, username) {
       try {
-        const response = await axios.post('/auth/register', { 
+        const response = await axios.post('/api/v1/auth/register', { 
           email, 
           password, 
           username 

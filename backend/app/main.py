@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.sqlite_database import connect_to_sqlite, close_sqlite_connection, create_tables
+from app.models.sqlite_models import PaintingEntryORM  # 导入模型以确保表创建
 from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers
 
 app = FastAPI(
@@ -10,10 +11,10 @@ app = FastAPI(
     version=settings.PROJECT_VERSION,
 )
 
-# CORS Middleware
+# CORS Middleware - 确保包含前端使用的8088端口
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:3000"],  # 添加8082端口
+    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8090", "http://localhost:8088", "http://localhost:3000", "http://localhost:8082"],  # 添加8082端口
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
