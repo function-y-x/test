@@ -34,5 +34,21 @@ async def get_database():
 
 async def create_tables():
     """创建所有表"""
+    # 只导入SQLAlchemy模型以确保表被创建
+    try:
+        from app.models.sqlite_user import User
+        from app.models.messenger import MessengerEntry  
+        from app.models.mood import MoodEntry
+        from app.models.task import TaskEntry
+        # 注意：以下是 Pydantic 模型，不是 SQLAlchemy 模型，所以不需要导入
+        # - app.models.painting.PaintingEntry
+        # - app.models.report.WeeklyReport  
+        # - app.models.error.ErrorEntry
+        print("成功导入所有SQLAlchemy模型")
+    except ImportError as e:
+        print(f"导入模型时出错: {e}")
+        # 即使导入失败，也要创建基础表结构
+        pass
+    
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
