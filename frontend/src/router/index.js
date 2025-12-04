@@ -6,6 +6,7 @@ import DashboardView from '../views/DashboardView.vue'
 import StressRadarView from '../views/StressRadarView.vue'
 import FlowTrainingView from '../views/FlowTrainingView.vue'
 import EmotionalAidView from '../views/EmotionalAidView.vue'
+import TestEmotionalFeatures from '../views/TestEmotionalFeatures.vue'
 import MindPaintingView from '../views/MindPaintingView.vue'
 import MessengerView from '../views/MessengerView.vue'
 import ErrorReviewView from '../views/ErrorReviewView.vue'
@@ -45,6 +46,11 @@ const routes = [
     name: 'EmotionalAid',
     component: EmotionalAidView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/test-emotional',
+    name: 'TestEmotional',
+    component: TestEmotionalFeatures
   },
   {
     path: '/mind-painting',

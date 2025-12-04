@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试情绪急救功能</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-button {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-result {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>情绪急救功能测试</h1>
+    
+    <h2>测试步骤：</h2>
+    <ol>
+        <li>访问 <a href="http://localhost:8081/emotional-aid" target="_blank">情绪急救页面</a></li>
+        <li>点击"90秒沉浸式急救"</li>
+        <li>选择一个情绪（如"焦虑"）</li>
+        <li>调整强度滑块</li>
+        <li>点击"开始AI急救"</li>
+        <li>等待90秒倒计时结束（或点击停止）</li>
+        <li>在反馈界面选择任意选项</li>
+        <li>应该看到鼓励语弹窗</li>
+        <li>点击"接受微行动挑战"</li>
+        <li>点击"开始挑战"开始计时</li>
+        <li>点击"完成微行动"获得徽章</li>
+    </ol>
+
+    <h2>API测试：</h2>
+    <button class="test-button" onclick="testEmergencyAPI()">测试急救API</button>
+    <button class="test-button" onclick="testScenarioAPI()">测试场景API</button>
+    
+    <div id="test-results"></div>
+
+    <script>
+        async function testEmergencyAPI() {
+            const resultDiv = document.getElementById('test-results');
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/emotional-aid/emergency-guidance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        emotion_state: '焦虑',
+                        intensity: 7.5
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML += `
+                    <div class="test-result">
+                        <h3>急救API测试结果：</h3>
+                        <p>状态：${response.ok ? '成功' : '失败'}</p>
+                        <p>数据：${JSON.stringify(data, null, 2)}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div class="test-result">
+                        <h3>急救API测试失败：</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testScenarioAPI() {
+            const resultDiv = document.getElementById('test-results');
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/emotional-aid/scenario-simulation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        scenario_type: 'exam',
+                        user_concerns: '担心考试发挥失常'
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML += `
+                    <div class="test-result">
+                        <h3>场景API测试结果：</h3>
+                        <p>状态：${response.ok ? '成功' : '失败'}</p>
+                        <p>数据：${JSON.stringify(data, null, 2)}</p>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div class="test-result">
+                        <h3>场景API测试失败：</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
