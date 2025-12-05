@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime, date
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class TaskCreate(BaseModel):
     text: str = Field(..., description="任务文本内容")
@@ -11,6 +11,8 @@ class TaskUpdate(BaseModel):
     completed: Optional[bool] = None
 
 class TaskOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     user_id: int
     text: str
@@ -18,7 +20,4 @@ class TaskOut(BaseModel):
     task_date: date
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 

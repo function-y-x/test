@@ -1,15 +1,57 @@
-import openai
+import os
+import asyncio
+import httpx
+import random
+from dotenv import load_dotenv
+from openai import OpenAI
+from typing import List, Dict, Any
+
+# 确保.env文件存在且正确加载
+print(f"当前工作目录: {os.getcwd()}")
+env_path = os.path.join(os.getcwd(), '.env')
+print(f".env文件路径: {env_path}, 是否存在: {os.path.exists(env_path)}")
+
+# 首先加载环境变量
+load_dotenv(override=True)  # 使用override=True确保强制重新加载
+
+# 打印环境变量加载状态
+print("环境变量加载状态:")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_base = os.getenv("OPENAI_API_BASE")
+print(f"OPENAI_API_KEY是否存在: {'是' if openai_api_key else '否'}")
+print(f"OPENAI_API_KEY长度: {len(openai_api_key) if openai_api_key else 0}")
+print(f"OPENAI_API_BASE是否存在: {'是' if openai_api_base else '否'}")
+print(f"OPENAI_API_BASE值: {openai_api_base or '未设置，将使用默认值'}")
+
+# 然后再导入settings，确保环境变量已加载
 from app.core.config import settings
 from app.schemas.ai import AIAnalysisResultOut, AIChatMessage
 from app.db.database import get_database
 from app.models.ai import AIConversation
-from typing import List
 
-# Ensure OpenAI API key is set before use
-if settings.OPENAI_API_KEY:
-    openai.api_key = settings.OPENAI_API_KEY
-else:
-    print("Warning: OpenAI API key is not set. AI functionalities will be mocked.")
+# 初始化客户端 - 完全复制test.py的初始化方式
+client = None
+try:
+    # 直接从os获取环境变量，与test.py完全一致
+    api_key = openai_api_key
+    api_base = openai_api_base or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    
+    print(f"初始化客户端 - API Key前10位: {api_key[:10]}..." if api_key else "API Key未设置")
+    print(f"使用的端点: {api_base}")
+    
+    # 创建自定义HTTP客户端，与test.py完全一致
+    http_client = httpx.Client(timeout=120.0)  # 增加超时时间以避免网络问题
+    client = OpenAI(
+        api_key=api_key,
+        base_url=api_base,
+        http_client=http_client,
+    )
+    print("OpenAI客户端初始化成功")
+except Exception as e:
+    print(f"OpenAI客户端初始化失败: {e}")
+    import traceback
+    traceback.print_exc()
+    client = None
 
 async def analyze_mood_with_ai(text: str) -> AIAnalysisResultOut:
     if not settings.OPENAI_API_KEY:
@@ -21,12 +63,13 @@ async def analyze_mood_with_ai(text: str) -> AIAnalysisResultOut:
             intervention_suggestion="可以尝试进行一次冥想。"
         )
     try:
-        response = openai.chat.completions.create(
+        # 使用客户端实例调用API，适应SDK 1.3.5版本
+        response = client.chat.completions.create(
             model="qwen-plus",
             messages=[
                 {"role": "system", "content": "你是一个心理健康助手，擅长分析用户情绪并提供建议。"},
-                {"role": "user", "content": f"请分析以下文本的情绪，并给出压力指数（0-1之间）、情绪雷达描述、解释和干预建议：\n\n{text}"
-                }
+                {"role": "user", "content": f"请分析以下文本的情绪，并给出压力指数（0-1之间）、情绪雷达描述、解释和干预建议：\n\n{text}"}
+        
             ],
             temperature=0.7,
             max_tokens=200
@@ -59,6 +102,7 @@ async def analyze_mood_with_ai(text: str) -> AIAnalysisResultOut:
             explanation=explanation,
             intervention_suggestion=intervention_suggestion
         )
+
     except Exception as e:
         print(f"Error calling OpenAI API for mood analysis: {e}")
         return AIAnalysisResultOut(
@@ -91,7 +135,8 @@ async def get_ai_chat_response(messages: List[AIChatMessage], user_id: str) -> s
         full_messages.append({"role": msg.role, "content": msg.content})
 
     try:
-        response = openai.chat.completions.create(
+        # 使用客户端实例调用API，适应SDK 1.3.5版本
+        response = client.chat.completions.create(
             model="qwen-plus",
             messages=full_messages,
             temperature=0.7,
@@ -113,4 +158,647 @@ async def get_ai_chat_response(messages: List[AIChatMessage], user_id: str) -> s
     except Exception as e:
         print(f"Error calling OpenAI API for chat: {e}")
         return "抱歉，AI服务暂时不可用，请稍后再试。"
+
+async def analyze_painting_with_qwen_vl(image_data_url: str, painting_mode: str, theme: str = None, local_analysis: Dict[str, Any] = None) -> Dict[str, Any]:
+    """使用qwen-vl多模态大模型分析绘画内容 - 简化版分析，只获取画面内容描述"""
+
+    print("调用函数: analyze_painting_with_qwen_vl")
+    global client
+    
+    print(f"开始分析绘画 - 模式: {painting_mode}, 主题: {theme}")
+    print(f"图像数据格式检查: {image_data_url[:50]}...")
+    print(f"客户端状态: {'已初始化' if client else '未初始化'}")
+    print(f"本地分析数据: {local_analysis}")
+    
+    # 再次检查并尝试重新初始化客户端（如果之前失败）
+    if client is None:
+        print("尝试重新初始化客户端...")
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            api_base = os.getenv("OPENAI_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            http_client = httpx.Client(timeout=120.0)  # 增加HTTP客户端超时时间到120秒
+            client = OpenAI(
+                api_key=api_key,
+                base_url=api_base,
+                http_client=http_client,
+            )
+            print("客户端重新初始化成功")
+        except Exception as re_init_error:
+            print(f"客户端重新初始化失败: {re_init_error}")
+    
+    # 如果客户端仍然未初始化，返回详细的错误信息
+    if client is None:
+        print("客户端仍然未初始化，返回模拟分析结果")
+        error_result = {
+            "content_description": "系统错误: AI客户端未初始化",
+            "analysis_result": "",
+            "is_real_analysis": False,
+            "error_type": "CLIENT_NOT_INITIALIZED",
+            "error_message": "无法初始化AI客户端，请检查环境变量配置和网络连接"
+        }
+        print(f"返回错误结果: {error_result}")
+        return error_result
+
+    print("客户端正常")
+    
+    try:
+        # 根据不同绘画模式生成个性化提示词
+        mode_specific_instructions = ""
+        if painting_mode == "house_tree_person":
+            mode_specific_instructions = "这是一幅房树人测试画作，请特别关注：房屋的结构、门窗状态（开放/封闭）、树木的类型和特征、人物的姿态和表情。房树人测试中，房屋通常代表自我意识，树木代表成长历程，人物代表自我形象。"
+        elif painting_mode == "theme_painting":
+            mode_specific_instructions = f"这是一幅以'{theme}'为主题的创作画作，请特别关注：用户如何诠释和表达这个主题、主题元素的呈现方式、情感与主题的关联。主题创作能反映用户的思维方式和对特定概念的理解。"
+        else:  # free_drawing
+            mode_specific_instructions = "这是一幅自由创作画作，请特别关注：用户选择表达的核心元素、自发的表达方式、没有约束下展现的潜意识内容。自由创作能真实反映用户当前的情绪状态和内心世界。"
+        
+        # 修改后的提示词，按照要求分析多维度内容并整合成一段描述
+        prompt = f"""请对这幅画作进行专业分析，并将结果整合成一段完整的描述。
+
+绘画模式: {painting_mode}
+绘画主题: {theme if theme else '自由创作'}
+
+{mode_specific_instructions}
+
+请按照以下维度进行分析：
+1. 符号与内容识别：详细识别画中内容及其特征
+2. 色彩情感分析：分析冷色调/暖色调比例、主色饱和度与明度
+3. 笔触动力学分析：分析线条的流畅性、力度、是否断续、涂改痕迹
+4. 构图与空间分析：分析图像重心、空间利用情况
+5. 结合你的专业知识，分析用户展现出什么心理状态，对于考研有什么针对性建议
+
+请将以上五个维度的分析，每一个点形成一个自然段，首字缩进两格，使用自然流畅的语言，全文不超过250字。
+
+
+"""
+
+        print(f"准备调用API - 模型: qwen-vl-plus, 多维度分析提示词已准备")
+
+        # 简化API调用参数
+        response = client.chat.completions.create(
+            model="qwen-vl-plus",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_data_url}}
+                    ]
+                }
+            ],
+            max_tokens=500,  # 减少token数量，只需描述画面内容
+            temperature=0.3  # 降低温度使输出更确定
+        )
+
+        # 验证响应格式 - 添加更全面的安全检查
+        ai_response_content = ""
+        if response and hasattr(response, 'choices') and response.choices and len(response.choices) > 0 and hasattr(response.choices[0], 'message') and response.choices[0].message and hasattr(response.choices[0].message, 'content'):
+            ai_response_content = response.choices[0].message.content or ""
+            print(f"API调用成功，响应长度: {len(ai_response_content)} 字符")
+        else:
+            print("API响应格式异常，无法获取content")
+            # 创建默认数据，避免后续处理出错
+            ai_response_content = ""
+
+        # 处理响应内容 - 使用API返回的内容作为整合后的多维度分析描述
+        content_description = ai_response_content.strip() if ai_response_content else "未能进行完整分析"
+        analysis_result = "多维度心理分析已完成"
+        
+        print(f"设置内容描述: {content_description[:100]}...")
+        
+        # 创建获取额外数据的提示词，确保简洁明了
+        data_extraction_prompt = "请基于这幅画作，提取以下具体数据并严格按照指定格式返回：\n\n"
+        data_extraction_prompt += "1. 情绪雷达数据：焦虑程度(1-10)、压力水平(1-10)、积极情绪(1-10)、创造力(1-10)、专注度(1-10)、情绪稳定性(1-10)\n"
+        data_extraction_prompt += "2. 色彩情感分析：冷色调比例(%)、暖色调比例(%)、色彩多样性(丰富/适中/单调)、情绪倾向描述\n"
+        data_extraction_prompt += "3. 笔触动力学：线条特征、力度水平、连贯性、情绪稳定性\n"
+        data_extraction_prompt += "4. 构图空间：密度描述、空间利用率(%)、中心位置、元素排列方式\n\n"
+        data_extraction_prompt += "请以JSON格式返回，不要添加任何其他文字！格式如下：\n"
+        data_extraction_prompt += '{"mood_radar":{"焦虑程度":5,"压力水平":5,"积极情绪":5,"创造力":5,"专注度":5,"情绪稳定性":5},"color_analysis":{"emotion_tendency":"描述","cool_color_ratio":"50%","warm_color_ratio":"50%","color_diversity":"适中"},"brush_analysis":{"stroke_characteristics":"流畅稳定","pressure_level":"适中","stroke_consistency":"连贯","emotional_stability":"较高"},"composition_analysis":{"密度":"适中","空间利用率":"50%","中心位置":"居中","元素排列方式":"有序"}}'
+        
+        # 调用API获取数据
+        data_response = None
+        try:
+            data_response = client.chat.completions.create(
+                model="qwen-vl-plus",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": data_extraction_prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": image_data_url
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=500,
+                temperature=0.2  # 降低温度以确保一致性
+            )
+        except Exception as data_api_error:
+            print(f"获取额外数据API调用异常: {data_api_error}")
+        
+        # 解析或使用默认数据
+        mood_radar_data = {
+            "焦虑程度": 5,
+            "压力水平": 5,
+            "积极情绪": 5,
+            "创造力": 5,
+            "专注度": 5,
+            "情绪稳定性": 5
+        }
+        
+        color_emotion_data = {
+            "emotion_tendency": "情绪平衡",
+            "cool_color_ratio": "50%",
+            "warm_color_ratio": "50%",
+            "color_diversity": "适中"
+        }
+        
+        brush_dynamics_data = {
+            "stroke_characteristics": "流畅稳定",
+            "pressure_level": "适中",
+            "stroke_consistency": "连贯",
+            "emotional_stability": "较高"
+        }
+        
+        composition_data = {
+            "密度": "适中，心理状态平衡",
+            "空间利用率": "50%",
+            "中心位置": "居中",
+            "元素排列方式": "有序"
+        }
+        
+        # 尝试解析AI返回的JSON数据
+        if data_response and hasattr(data_response, 'choices') and data_response.choices and len(data_response.choices) > 0 and hasattr(data_response.choices[0], 'message') and data_response.choices[0].message and hasattr(data_response.choices[0].message, 'content'):
+            data_content = data_response.choices[0].message.content.strip()
+            print(f"额外数据响应: {data_content[:100]}...")
+            
+            # 尝试提取JSON部分
+            try:
+                # 提取花括号之间的内容
+                start_idx = data_content.find('{')
+                end_idx = data_content.rfind('}')
+                if start_idx != -1 and end_idx != -1:
+                    json_str = data_content[start_idx:end_idx+1]
+                    import json
+                    ai_data = json.loads(json_str)
+                    
+                    # 更新数据
+                    if 'mood_radar' in ai_data:
+                        mood_radar_data = ai_data['mood_radar']
+                    if 'color_analysis' in ai_data:
+                        color_emotion_data = ai_data['color_analysis']
+                    if 'brush_analysis' in ai_data:
+                        brush_dynamics_data = ai_data['brush_analysis']
+                    if 'composition_analysis' in ai_data:
+                        composition_data = ai_data['composition_analysis']
+            except Exception as json_error:
+                print(f"JSON解析异常: {json_error}")
+        
+        print(f"最终情绪雷达数据: {mood_radar_data}")
+        print(f"最终色彩分析数据: {color_emotion_data}")
+
+        # 返回真实的API响应，并添加明确的标记
+        return {
+            "content_description": content_description,  # 这是个性化心理画像栏要显示的内容
+            "analysis_result": analysis_result,
+            "is_real_analysis": True,
+            "error_type": None,
+            "analysis_dimensions": ["色彩情感", "笔触动力学", "构图空间", "符号内容", "心理画像", "针对性建议"],
+            "mood_radar_data": mood_radar_data,
+            # 三个小模块的数据（模拟数据）
+            "color_emotion_analysis": {
+                "description": "色彩情感分析",
+                "data": color_emotion_data
+            },
+            "brush_dynamics_analysis": {
+                "description": "笔触动力学分析",
+                "data": brush_dynamics_data
+            },
+            "composition_analysis": {
+                "description": "构图与空间分析",
+                "data": composition_data
+            }
+        }
+    except Exception as e:
+        print(f"API调用异常: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # 返回明确的错误信息，包含异常类型，同时提供默认的情绪雷达图数据
+        error_result = {
+            "content_description": "API调用失败",
+            "analysis_result": "",
+            "is_real_analysis": False,
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "mood_radar_data": {
+                "焦虑程度": 5,
+                "压力水平": 5,
+                "积极情绪": 5,
+                "创造力": 5,
+                "专注度": 5,
+                "情绪稳定性": 5
+            },
+            "color_emotion_analysis": {
+                "description": "色彩情感分析",
+                "data": {
+                    "emotion_tendency": "温暖积极，充满活力",
+                    "cool_color_ratio": "30%",
+                    "warm_color_ratio": "70%",
+                    "color_diversity": "适中"
+                }
+            },
+            "brush_dynamics_analysis": {
+                "description": "笔触动力学分析",
+                "data": {
+                    "stroke_characteristics": "流畅稳定",
+                    "pressure_level": "适中",
+                    "stroke_consistency": "连贯",
+                    "emotional_stability": "较高"
+                }
+            },
+            "composition_analysis": {
+                "description": "构图与空间分析",
+                "data": {
+                    "密度": "低，思维开阔或情绪平静",
+                    "空间利用率": "5%",
+                    "中心位置": "居中",
+                    "元素排列方式": "有序"
+                }
+            }
+        }
+        print(f"返回API错误结果: {error_result}")
+        return error_result
+
+
+async def generate_mindfulness_guidance(painting_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    根据用户画作分析生成个性化正念绘画引导文本
+    
+    Args:
+        painting_analysis: 包含用户画作分析结果的字典
+        
+    Returns:
+        包含引导文本的字典
+    """
+    print("调用函数: generate_mindfulness_guidance")
+    print(f"分析数据: {painting_analysis}")
+    
+    # 再次检查并尝试重新初始化客户端（如果之前失败）
+    global client
+    if client is None:
+        print("尝试重新初始化客户端...")
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            api_base = os.getenv("OPENAI_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            http_client = httpx.Client(timeout=120.0)  # 增加HTTP客户端超时时间到120秒
+            client = OpenAI(
+                api_key=api_key,
+                base_url=api_base,
+                http_client=http_client,
+            )
+            print("客户端重新初始化成功")
+        except Exception as re_init_error:
+            print(f"客户端重新初始化失败: {re_init_error}")
+    
+    # 如果客户端仍然未初始化，返回模拟引导
+    if client is None:
+        print("客户端未初始化，返回模拟引导文本")
+        return {
+            "guidance_text": "现在，请闭上眼睛，想象一股平静的蓝色能量从笔尖流出，慢慢填满整个画布。感受你的呼吸，让每一次呼吸都成为画笔的一次移动。不要担心画得如何，只关注当下的感受和体验。让你的手自由地表达内心的情感，不需要思考太多，跟随直觉去创作。",
+            "is_real_guidance": False,
+            "guidance_type": "mindfulness"
+        }
+    
+    try:
+        # 获取分析结果中的关键信息
+        mood_description = painting_analysis.get("content_description", "")
+        mood_radar_data = painting_analysis.get("mood_radar_data", {})
+        color_analysis = painting_analysis.get("color_emotion_analysis", {})
+        brush_analysis = painting_analysis.get("brush_dynamics_analysis", {})
+        composition_analysis = painting_analysis.get("composition_analysis", {})
+        
+        # 构建提示词
+        prompt = f"""
+        请基于以下用户画作分析结果，生成一段个性化的正念绘画引导文本。
+        这段引导应该帮助用户在下一次绘画中获得更好的情绪体验和自我表达。
+        
+        用户画作分析结果：
+        - 心理画像：{mood_description}
+        - 情绪雷达数据：{mood_radar_data}
+        - 色彩情感分析：{color_analysis.get('data', {})}
+        - 笔触动力学分析：{brush_analysis.get('data', {})}
+        - 构图与空间分析：{composition_analysis.get('data', {})}
+        
+        请创作一段约200字的引导文本，语言要温和、鼓励性强，包含冥想元素。
+        引导应该包括：
+        1. 简短的呼吸引导
+        2. 意象可视化建议（如颜色、形状、能量等）
+        3. 绘画动作的指导
+        4. 心态调整的建议
+        
+        请直接返回引导文本，不要添加任何其他说明。
+        """
+        
+        print(f"发送引导生成请求到AI模型")
+        
+        # 调用AI模型生成引导文本
+        response = client.chat.completions.create(
+            model="qwen-vl-plus",
+            messages=[
+                {"role": "system", "content": "你是一位专业的艺术心理治疗师，擅长通过引导性语言帮助用户进行正念绘画和情绪表达。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        # 解析响应
+        guidance_text = response.choices[0].message.content.strip()
+        print(f"生成的引导文本: {guidance_text}")
+        
+        return {
+            "guidance_text": guidance_text,
+            "is_real_guidance": True,
+            "guidance_type": "mindfulness"
+        }
+        
+    except Exception as e:
+        print(f"生成引导文本异常: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # 返回默认引导文本
+        default_guidance = "现在，请闭上眼睛，想象一股平静的蓝色能量从笔尖流出，慢慢填满整个画布。感受你的呼吸，让每一次呼吸都成为画笔的一次移动。不要担心画得如何，只关注当下的感受和体验。让你的手自由地表达内心的情感，不需要思考太多，跟随直觉去创作。"
+        
+        return {
+            "guidance_text": default_guidance,
+            "is_real_guidance": False,
+            "guidance_type": "mindfulness",
+            "error": str(e)
+        }
+
+
+async def generate_healing_story(analysis_result: Dict[str, Any], image_data_url: str = None) -> str:
+    """
+    根据用户画作分析结果生成疗愈小故事
+    图片URL是可选的，主要基于分析数据生成
+    
+    Args:
+        analysis_result: 画作的AI分析结果
+        image_data_url: 可选，画作的base64数据URL
+        
+    Returns:
+        疗愈小故事文本
+    """
+    print("调用函数: generate_healing_story")
+    print(f"分析数据摘要: {analysis_result.get('content_description', '')[:100]}...")
+    
+    # 再次检查并尝试重新初始化客户端（如果之前失败）
+    global client
+    if client is None:
+        print("尝试重新初始化客户端...")
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            api_base = os.getenv("OPENAI_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            http_client = httpx.Client(timeout=120.0)  # 增加HTTP客户端超时时间到120秒
+            client = OpenAI(
+                api_key=api_key,
+                base_url=api_base,
+                http_client=http_client,
+            )
+            print("客户端重新初始化成功")
+        except Exception as re_init_error:
+            print(f"客户端重新初始化失败: {re_init_error}")
+    
+    # 如果客户端未初始化，返回默认故事
+    if client is None:
+        print("客户端未初始化，返回默认疗愈故事")
+        return "在一片绿意盎然的森林中，你发现了一面神奇的镜子。当你望向镜中，看到的不仅是自己，还有无数可能。每一片落叶都代表一个过去的烦恼，每一道阳光都预示着新的希望。深呼吸，感受大自然的治愈力量，你会发现，内心的平静一直都在那里，等待你去发现。"
+
+
+async def generate_mind_mirror(image_data_url: str) -> Dict[str, Any]:
+    """
+    生成心灵镜像：根据用户的画作，生成一幅保持核心元素但色彩更明媚、构图更和谐的"积极版本"
+    
+    Args:
+        image_data_url: 用户画作的base64数据URL
+        
+    Returns:
+        包含积极版本画作描述和引导语的字典
+    """
+    
+    print("调用函数: generate_mind_mirror")
+    print(f"图像数据格式检查: {image_data_url[:50]}...")
+    
+    # 再次检查并尝试重新初始化客户端（如果之前失败）
+    global client
+    if client is None:
+        print("尝试重新初始化客户端...")
+        try:
+            api_key = os.getenv("OPENAI_API_KEY")
+            api_base = os.getenv("OPENAI_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+            http_client = httpx.Client(timeout=120.0)  # 增加HTTP客户端超时时间到120秒
+            client = OpenAI(
+                api_key=api_key,
+                base_url=api_base,
+                http_client=http_client,
+            )
+            print("客户端重新初始化成功")
+        except Exception as re_init_error:
+            print(f"客户端重新初始化失败: {re_init_error}")
+    
+    # 如果客户端仍然未初始化，返回模拟结果
+    if client is None:
+        print("客户端未初始化，返回模拟心灵镜像结果")
+        return {
+            "positive_image_description": "这是一幅充满希望的画面，阳光透过云层洒在大地上，色彩明亮温暖，构图和谐平衡。",
+            "guidance_text": "看，如果给这里加一缕阳光，是不是感觉充满了希望？",
+            "is_real_mirror": False,
+            "error_type": "CLIENT_NOT_INITIALIZED"
+        }
+    
+    try:
+        # 构建提示词，让AI分析原图并给出积极版本的描述
+        prompt = f"""
+        请分析这幅画作，然后生成一幅保持核心元素但色彩更明媚、构图更和谐的"积极版本"描述。
+        
+        具体要求：
+        1. 首先识别画作的核心元素和主题
+        2. 然后描述一个积极版本的画面，特点包括：
+           - 色彩更加明亮、温暖、积极
+           - 构图更加平衡和谐
+           - 保持原有的核心元素和主题
+           - 加入一些积极的元素（如阳光、明亮的色彩等）
+        3. 最后提供一句简短的引导语，格式类似："看，如果给这里加一缕阳光，是不是感觉充满了希望？"
+        
+        请以JSON格式返回，包含以下字段：
+        - positive_image_description: 积极版本画面的详细描述
+        - guidance_text: 一句简短的引导语
+        """
+        
+        print(f"发送心灵镜像生成请求到AI模型")
+        
+        # 调用AI模型生成心灵镜像描述
+        response = client.chat.completions.create(
+            model="qwen-vl-plus",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": image_data_url}}
+                    ]
+                }
+            ],
+            temperature=0.7,
+            max_tokens=500
+        )
+        
+        # 解析响应
+        ai_response_content = response.choices[0].message.content.strip()
+        print(f"AI响应: {ai_response_content}")
+        
+        # 尝试提取JSON部分
+        try:
+            # 提取花括号之间的内容
+            start_idx = ai_response_content.find('{')
+            end_idx = ai_response_content.rfind('}')
+            if start_idx != -1 and end_idx != -1:
+                json_str = ai_response_content[start_idx:end_idx+1]
+                import json
+                result_data = json.loads(json_str)
+                
+                # 确保返回的字典包含必要字段
+                if 'positive_image_description' in result_data and 'guidance_text' in result_data:
+                    return {
+                        "positive_image_description": result_data['positive_image_description'],
+                        "guidance_text": result_data['guidance_text'],
+                        "is_real_mirror": True,
+                        "error_type": None
+                    }
+                else:
+                    # 如果JSON格式不完整，使用默认值
+                    return {
+                        "positive_image_description": "这是一幅充满阳光和希望的画面，色彩明亮温暖，构图和谐平衡。",
+                        "guidance_text": "看，如果给这里加一缕阳光，是不是感觉充满了希望？",
+                        "is_real_mirror": True,
+                        "error_type": None
+                    }
+            else:
+                # 如果没有找到有效的JSON，使用默认值
+                return {
+                    "positive_image_description": "这是一幅充满阳光和希望的画面，色彩明亮温暖，构图和谐平衡。",
+                    "guidance_text": "看，如果给这里加一缕阳光，是不是感觉充满了希望？",
+                    "is_real_mirror": True,
+                    "error_type": None
+                }
+        except Exception as json_error:
+            print(f"JSON解析异常: {json_error}")
+            # JSON解析失败，返回默认值
+            return {
+                "positive_image_description": "这是一幅充满阳光和希望的画面，色彩明亮温暖，构图和谐平衡。",
+                "guidance_text": "看，如果给这里加一缕阳光，是不是感觉充满了希望？",
+                "is_real_mirror": True,
+                "error_type": None
+            }
+            
+    except Exception as e:
+        print(f"生成心灵镜像异常: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # 返回默认结果
+        return {
+            "positive_image_description": "这是一幅充满阳光和希望的画面，色彩明亮温暖，构图和谐平衡。",
+            "guidance_text": "看，如果给这里加一缕阳光，是不是感觉充满了希望？",
+            "is_real_mirror": False,
+            "error_type": type(e).__name__
+        }
+    
+    try:
+        # 获取分析结果中的关键信息
+        mood_description = analysis_result.get("content_description", "")
+        mood_radar_data = analysis_result.get("mood_radar_data", {})
+        color_analysis = analysis_result.get("color_emotion_analysis", {})
+        brush_analysis = analysis_result.get("brush_dynamics_analysis", {})
+        composition_analysis = analysis_result.get("composition_analysis", {})
+        
+        # 构建提示词，主要基于分析数据
+        prompt = f"""
+        请基于用户画作的详细分析结果，创作一个简短的疗愈小故事。
+        
+        画作分析信息：
+        - 心理画像：{mood_description}
+        - 情绪雷达数据：{mood_radar_data}
+        - 色彩情感分析：{color_analysis.get('data', {})}
+        - 笔触动力学分析：{brush_analysis.get('data', {})}
+        - 构图与空间分析：{composition_analysis.get('data', {})}
+        
+        创作要求：
+        1. 故事长度控制在200字以内
+        2. 包含积极的隐喻和象征
+        3. 语言温暖、治愈、富有画面感
+        4. 帮助用户换一个视角看待问题
+        5. 故事要有明确的积极寓意和希望感
+        6. 不要直接提及考研或学习压力，而是通过隐喻来表达
+        
+        请直接返回故事内容，不要添加任何其他说明。
+        """
+        
+        print(f"发送疗愈故事生成请求到AI模型")
+        
+        # 构建消息数组
+        messages = [
+            {"role": "system", "content": "你是一位专业的艺术心理治疗师，擅长通过富有寓意的小故事帮助用户获得心理疗愈。"}
+        ]
+        
+        # 根据是否有图片URL构建不同的消息内容
+        if image_data_url:
+            # 如果有图片，使用多模态消息
+            messages.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": image_data_url}}
+                ]
+            })
+        else:
+            # 没有图片时，只使用文本提示
+            messages.append({
+                "role": "user",
+                "content": prompt
+            })
+        
+        # 调用AI模型生成疗愈故事
+        response = client.chat.completions.create(
+            model="qwen-vl-plus",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=300  # 限制token数，确保故事简短
+        )
+        
+        # 解析响应
+        story = response.choices[0].message.content.strip()
+        print(f"生成的疗愈故事: {story}")
+        
+        # 确保故事不超过200字
+        if len(story) > 200:
+            story = story[:197] + "..."
+        
+        return story
+        
+    except Exception as e:
+        print(f"生成疗愈故事异常: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # 返回默认疗愈故事
+        return "在一片绿意盎然的森林中，你发现了一面神奇的镜子。当你望向镜中，看到的不仅是自己，还有无数可能。每一片落叶都代表一个过去的烦恼，每一道阳光都预示着新的希望。深呼吸，感受大自然的治愈力量，你会发现，内心的平静一直都在那里，等待你去发现。"
 

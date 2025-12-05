@@ -26,15 +26,15 @@
     <div class="report-section">
       <h2>本周洞察与建议</h2>
       <div class="insights">
-        <p><strong>变化检测:</strong> 本周新增早起 ×3、晚睡 -2h、模考频次 ↑。</p>
-        <p><strong>弱因果提示:</strong> 晚睡 小于 23:30 的日子，次日 TPR +18%（过去 30 天）。</p>
+        <p><strong>变化检测:</strong> 本周新增早起 ×3、晚睡 -2h、学习英语频次 ↑。</p>
+        <p><strong>弱因果提示:</strong> 晚于 23:30 睡觉的日子，次日学习效率降低，且情绪波动加剧。</p>
       </div>
       <div class="suggestions">
-        <h3>个性化策略（三选一）</h3>
+        <h3>个性化策略（预测焦虑 -8%）</h3>
         <ul>
-          <li>加 1 次午后 20min 小睡（预测焦虑 -8%）</li>
-          <li>英语调到上午第一节（TPR +12%）</li>
-          <li>晚间只做“可赢题”（遵从率 +20%）</li>
+          <li>加 1 次午后 20min 小睡</li>
+          <li>英语调到上午第一节</li>
+          <li>晚间只做“可赢题”，并且坚持早睡</li>
         </ul>
       </div>
     </div>
