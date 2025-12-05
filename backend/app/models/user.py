@@ -1,9 +1,13 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class UserInDB(BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )
+    
     id: Optional[str] = Field(alias="_id")
     username: str
     email: str

@@ -3,17 +3,25 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.sqlite_database import connect_to_sqlite, close_sqlite_connection, create_tables
-from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, emotional_aid
+from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, calendar_notes, sleeps, stress_prescription , emotional_aid
+
+# 导入所有模型以确保数据库表被创建
+from app.models.sqlite_user import User
+from app.models.mood import MoodEntry
+from app.models.task import TaskEntry
+from app.models.calendar_note import CalendarNote
+from app.models.sleep import SleepEntry
+from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, tts
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.PROJECT_VERSION,
 )
 
-# CORS Middleware
+# CORS Middleware - 确保包含前端使用的8088端口
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:3000"],  # 添加8082端口
+    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8090", "http://localhost:8088", "http://localhost:3000", "http://localhost:8082"],  # 添加8082端口
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +48,10 @@ app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(paintings.router, prefix="/api/v1/paintings", tags=["paintings"])
 app.include_router(messengers.router, prefix="/api/v1/messengers", tags=["messengers"])
 app.include_router(emotional_aid.router, prefix="/api/v1", tags=["emotional-aid"])
+app.include_router(calendar_notes.router, prefix="/api/v1/calendar-notes", tags=["calendar-notes"])
+app.include_router(sleeps.router, prefix="/api/v1/sleeps", tags=["sleeps"])
+app.include_router(stress_prescription.router, prefix="/api/v1/stress-prescription", tags=["stress-prescription"])
+app.include_router(tts.router, prefix="/api/v1", tags=["tts"])
 
 @app.get("/", tags=["root"])
 async def read_root():

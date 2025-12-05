@@ -1,9 +1,13 @@
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class WeeklyReport(BaseModel):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )
+    
     id: Optional[str] = Field(alias="_id")
     user_id: str
     start_date: datetime
@@ -13,11 +17,4 @@ class WeeklyReport(BaseModel):
     insights: List[str]
     suggestions: List[str]
     created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {
-            datetime: lambda dt: dt.isoformat()
-        }
 

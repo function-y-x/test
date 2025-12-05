@@ -292,7 +292,7 @@ export default {
     const authStore = useAuthStore()
 
     const user = computed(() => authStore.getUser)
-    const examDate = ref('2026-01-01') // Placeholder, should come from user profile
+    const examDate = ref('2025-12-20') // Placeholder, should come from user profile
     const currentMood = ref('平静') // 将从最新情绪记录获取
     
     // 学习时长计时器

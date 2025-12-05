@@ -1,6 +1,6 @@
 from typing import Optional, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class ErrorCreate(BaseModel):
     description: str
@@ -12,12 +12,11 @@ class ErrorUpdate(BaseModel):
     ai_analysis: Optional[Dict[str, Any]] = None
 
 class ErrorOut(ErrorCreate):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     user_id: str
     ai_analysis: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 

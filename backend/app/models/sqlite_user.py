@@ -20,6 +20,8 @@ class User(Base):
     # 关系
     mood_entries = relationship("MoodEntry", back_populates="user")
     task_entries = relationship("TaskEntry", back_populates="user")
+    calendar_notes = relationship("CalendarNote", back_populates="user")
+    sleep_entries = relationship("SleepEntry", back_populates="user")
 
     def get_selected_subjects(self):
         """获取选择的科目列表"""
