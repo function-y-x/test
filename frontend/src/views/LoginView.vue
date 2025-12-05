@@ -89,6 +89,8 @@
       <input type="password" v-model="password" placeholder="密码" />
       <input v-if="isRegistering" type="text" v-model="username" placeholder="用户名" />
       <button @click="submitAuth">{{ isRegistering ? '注册' : '登录' }}</button>
+      <!-- 开发测试用：模拟登录按钮 -->
+      <button @click="mockLogin" style="margin-top: 10px; background-color: #4CAF50; color: white;">开发测试：跳过登录</button>
       <p @click="toggleAuthMode">
         {{ isRegistering ? '已有账号？去登录' : '没有账号？去注册' }}
       </p>
@@ -156,6 +158,14 @@ export default {
       errorMessage.value = '' // 清除错误消息
     }
 
+    // 模拟登录方法
+    const mockLogin = () => {
+      console.log('执行模拟登录')
+      authStore.mockLogin()
+      // 模拟登录后直接跳转到仪表盘
+      router.push('/dashboard')
+    }
+    
     const submitAuth = async () => {
       errorMessage.value = '' // 清除之前的错误消息
       
@@ -318,6 +328,7 @@ export default {
       submitMood,
       submitAuth,
       toggleAuthMode,
+      mockLogin
       getParticleStyle,
       getMobileParticleStyle
     }

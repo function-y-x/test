@@ -10,10 +10,10 @@ app = FastAPI(
     version=settings.PROJECT_VERSION,
 )
 
-# CORS Middleware
+# CORS Middleware - 确保包含前端使用的8088端口
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8082", "http://localhost:3000"],  # 添加8082端口
+    allow_origins=["http://localhost:8080", "http://localhost:8081", "http://localhost:8090", "http://localhost:8088", "http://localhost:3000", "http://localhost:8082"],  # 添加8082端口
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
