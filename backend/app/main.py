@@ -3,8 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.sqlite_database import connect_to_sqlite, close_sqlite_connection, create_tables
-from app.models.sqlite_models import PaintingEntryORM  # 导入模型以确保表创建
-from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers
+from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, tts
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,6 +39,7 @@ app.include_router(errors.router, prefix="/api/v1/errors", tags=["errors"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(paintings.router, prefix="/api/v1/paintings", tags=["paintings"])
 app.include_router(messengers.router, prefix="/api/v1/messengers", tags=["messengers"])
+app.include_router(tts.router, prefix="/api/v1", tags=["tts"])
 
 @app.get("/", tags=["root"])
 async def read_root():
