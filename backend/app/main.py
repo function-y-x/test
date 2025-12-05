@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.sqlite_database import connect_to_sqlite, close_sqlite_connection, create_tables
-from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, calendar_notes, sleeps, stress_prescription
+from app.routers import sqlite_auth as auth, users, moods, tasks, ai, errors, reports, paintings, messengers, calendar_notes, sleeps, stress_prescription , emotional_aid
 
 # 导入所有模型以确保数据库表被创建
 from app.models.sqlite_user import User
@@ -47,6 +47,7 @@ app.include_router(errors.router, prefix="/api/v1/errors", tags=["errors"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(paintings.router, prefix="/api/v1/paintings", tags=["paintings"])
 app.include_router(messengers.router, prefix="/api/v1/messengers", tags=["messengers"])
+app.include_router(emotional_aid.router, prefix="/api/v1", tags=["emotional-aid"])
 app.include_router(calendar_notes.router, prefix="/api/v1/calendar-notes", tags=["calendar-notes"])
 app.include_router(sleeps.router, prefix="/api/v1/sleeps", tags=["sleeps"])
 app.include_router(stress_prescription.router, prefix="/api/v1/stress-prescription", tags=["stress-prescription"])
